@@ -1,6 +1,9 @@
 import streamlit as st
 import os
 
+# CRÍTICO: Carregar Secrets ANTES de importar qualquer crew
+# Isso garante que as variáveis de ambiente estejam disponíveis quando os crews são inicializados
+
 # Carregar variáveis de ambiente do Streamlit Secrets (produção) ou .env (local)
 try:
     from dotenv import load_dotenv
@@ -11,13 +14,20 @@ except:
 # Se estiver no Streamlit Cloud, usar secrets
 try:
     if hasattr(st, 'secrets'):
+        # Carregar OPENAI_API_KEY
         if 'OPENAI_API_KEY' in st.secrets:
-            os.environ['OPENAI_API_KEY'] = st.secrets['OPENAI_API_KEY']
+            os.environ['OPENAI_API_KEY'] = str(st.secrets['OPENAI_API_KEY'])
+        # Carregar SERPER_API_KEY
         if 'SERPER_API_KEY' in st.secrets:
-            os.environ['SERPER_API_KEY'] = st.secrets['SERPER_API_KEY']
+            os.environ['SERPER_API_KEY'] = str(st.secrets['SERPER_API_KEY'])
 except Exception as e:
     # Se houver erro ao ler secrets, tentar usar variáveis de ambiente
+    st.error(f"Erro ao carregar Secrets: {e}")
     pass
+
+# Verificar se as chaves foram carregadas (para debug)
+if not os.getenv('OPENAI_API_KEY'):
+    st.warning("⚠️ OPENAI_API_KEY não encontrada! Verifique os Secrets no Streamlit Cloud.")
 
 from streamlit_option_menu import option_menu
 from images._my_images import Image
