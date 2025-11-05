@@ -1,8 +1,8 @@
 import os
 
 class Image:
-    # Corrigindo os caminhos para usar o caminho absoluto do diretório atual
-    BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+    # Usar caminho relativo ao diretório do arquivo para funcionar em qualquer ambiente
+    BASE_DIR = os.path.dirname(__file__)
 
-    LOGO = os.path.join(BASE_DIR, "agentic_platform", "images", "logo_iep.png")
-    POWERED = os.path.join(BASE_DIR, "agentic_platform", "images", "logo_remederi.png")
+    LOGO = os.path.join(BASE_DIR, "logo_iep.png")
+    POWERED = os.path.join(BASE_DIR, "logo_remederi.png")
