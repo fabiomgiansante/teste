@@ -11,7 +11,7 @@ load_dotenv()
 # Função para obter o modelo OpenAI apenas quando necessário
 def get_openai_model():
     """Retorna o modelo OpenAI, inicializando apenas quando necessário"""
-    return ChatOpenAI(model_name="gpt-3.5-turbo", provider="openai")
+    return ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0.7)
 
 # SOLICITAÇÕES
 solicitacoes = """
@@ -69,6 +69,7 @@ ARTIGO:
 class CrewPDFResumo:
     def __init__(self, pdf_path):
         self.pdf_tool = PDFSearchTool(pdf_path)  # Tool nativa do CrewAI para leitura de PDF
+        self.llm = get_openai_model()  # Inicializar o modelo uma vez
         self.crew = self._criar_crew()
 
     def _criar_crew(self):
@@ -87,7 +88,7 @@ class CrewPDFResumo:
             tools=[self.pdf_tool],
             verbose=True,
             memory=False,
-            llm=get_openai_model()
+            llm=self.llm
         )
 
         # Agente Revisor
@@ -107,7 +108,7 @@ class CrewPDFResumo:
                       "sejam precisos e conformes às expectativas. {solicitacoes} {template}",
             verbose=True,
             memory=False,
-            llm=get_openai_model(),
+            llm=self.llm,
         )
 
         # Tarefa do Leitor
