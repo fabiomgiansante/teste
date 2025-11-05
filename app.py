@@ -1,4 +1,20 @@
 import streamlit as st
+import os
+
+# Carregar variáveis de ambiente do Streamlit Secrets (produção) ou .env (local)
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except:
+    pass
+
+# Se estiver no Streamlit Cloud, usar secrets
+if hasattr(st, 'secrets'):
+    if 'OPENAI_API_KEY' in st.secrets:
+        os.environ['OPENAI_API_KEY'] = st.secrets['OPENAI_API_KEY']
+    if 'SERPER_API_KEY' in st.secrets:
+        os.environ['SERPER_API_KEY'] = st.secrets['SERPER_API_KEY']
+
 from streamlit_option_menu import option_menu
 from images._my_images import Image
 from paginas.welcome import render_welcome
