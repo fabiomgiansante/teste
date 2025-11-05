@@ -11,7 +11,17 @@ load_dotenv()
 # Função para obter o modelo OpenAI apenas quando necessário
 def get_openai_model():
     """Retorna o modelo OpenAI, inicializando apenas quando necessário"""
-    return ChatOpenAI(model_name="gpt-4o-mini", temperature=0.7)
+    # Garantir que a variável de ambiente está carregada
+    api_key = os.getenv('OPENAI_API_KEY')
+    if not api_key:
+        raise ValueError("OPENAI_API_KEY não encontrada nas variáveis de ambiente!")
+    
+    # Inicializar ChatOpenAI explicitamente com a API key
+    return ChatOpenAI(
+        model_name="gpt-4o-mini", 
+        temperature=0.7,
+        api_key=api_key
+    )
 
 class CrewPostagem:
 

@@ -17,18 +17,19 @@ try:
         # Carregar OPENAI_API_KEY
         try:
             # Tentar diferentes formas de acessar os secrets
+            api_key = None
             if 'OPENAI_API_KEY' in st.secrets:
                 api_key = st.secrets['OPENAI_API_KEY']
-                # Limpar espaços e quebras de linha
-                api_key = str(api_key).strip().replace('\n', '').replace('\r', '')
-                if api_key and len(api_key) > 10:
-                    os.environ['OPENAI_API_KEY'] = api_key
             elif hasattr(st.secrets, 'get'):
                 api_key = st.secrets.get('OPENAI_API_KEY')
-                if api_key:
-                    api_key = str(api_key).strip().replace('\n', '').replace('\r', '')
-                    if len(api_key) > 10:
-                        os.environ['OPENAI_API_KEY'] = api_key
+            
+            if api_key:
+                # Limpar espaços e quebras de linha
+                api_key = str(api_key).strip().replace('\n', '').replace('\r', '').replace(' ', '')
+                if api_key and len(api_key) > 10:
+                    os.environ['OPENAI_API_KEY'] = api_key
+                    # Forçar atualização da variável de ambiente
+                    os.putenv('OPENAI_API_KEY', api_key)
         except Exception as e:
             pass
         
