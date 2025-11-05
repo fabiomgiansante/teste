@@ -9,11 +9,15 @@ except:
     pass
 
 # Se estiver no Streamlit Cloud, usar secrets
-if hasattr(st, 'secrets'):
-    if 'OPENAI_API_KEY' in st.secrets:
-        os.environ['OPENAI_API_KEY'] = st.secrets['OPENAI_API_KEY']
-    if 'SERPER_API_KEY' in st.secrets:
-        os.environ['SERPER_API_KEY'] = st.secrets['SERPER_API_KEY']
+try:
+    if hasattr(st, 'secrets'):
+        if 'OPENAI_API_KEY' in st.secrets:
+            os.environ['OPENAI_API_KEY'] = st.secrets['OPENAI_API_KEY']
+        if 'SERPER_API_KEY' in st.secrets:
+            os.environ['SERPER_API_KEY'] = st.secrets['SERPER_API_KEY']
+except Exception as e:
+    # Se houver erro ao ler secrets, tentar usar variáveis de ambiente
+    pass
 
 from streamlit_option_menu import option_menu
 from images._my_images import Image
