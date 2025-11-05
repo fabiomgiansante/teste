@@ -15,19 +15,40 @@ except:
 try:
     if hasattr(st, 'secrets'):
         # Carregar OPENAI_API_KEY
-        if 'OPENAI_API_KEY' in st.secrets:
-            os.environ['OPENAI_API_KEY'] = str(st.secrets['OPENAI_API_KEY'])
+        try:
+            # Tentar diferentes formas de acessar os secrets
+            if 'OPENAI_API_KEY' in st.secrets:
+                api_key = st.secrets['OPENAI_API_KEY']
+                os.environ['OPENAI_API_KEY'] = str(api_key) if api_key else ""
+            elif hasattr(st.secrets, 'get'):
+                api_key = st.secrets.get('OPENAI_API_KEY')
+                if api_key:
+                    os.environ['OPENAI_API_KEY'] = str(api_key)
+        except Exception as e:
+            pass
+        
         # Carregar SERPER_API_KEY
-        if 'SERPER_API_KEY' in st.secrets:
-            os.environ['SERPER_API_KEY'] = str(st.secrets['SERPER_API_KEY'])
+        try:
+            if 'SERPER_API_KEY' in st.secrets:
+                serper_key = st.secrets['SERPER_API_KEY']
+                os.environ['SERPER_API_KEY'] = str(serper_key) if serper_key else ""
+            elif hasattr(st.secrets, 'get'):
+                serper_key = st.secrets.get('SERPER_API_KEY')
+                if serper_key:
+                    os.environ['SERPER_API_KEY'] = str(serper_key)
+        except Exception as e:
+            pass
 except Exception as e:
-    # Se houver erro ao ler secrets, tentar usar variáveis de ambiente
-    st.error(f"Erro ao carregar Secrets: {e}")
     pass
 
-# Verificar se as chaves foram carregadas (para debug)
-if not os.getenv('OPENAI_API_KEY'):
-    st.warning("⚠️ OPENAI_API_KEY não encontrada! Verifique os Secrets no Streamlit Cloud.")
+# Debug: Verificar se a chave foi carregada
+if not hasattr(st.session_state, 'api_key_checked'):
+    st.session_state.api_key_checked = True
+    api_key = os.getenv('OPENAI_API_KEY')
+    if not api_key or api_key == "":
+        st.sidebar.error("❌ OPENAI_API_KEY não configurada! Configure nos Secrets do Streamlit Cloud.")
+    elif len(api_key) < 20:
+        st.sidebar.warning("⚠️ OPENAI_API_KEY parece inválida (muito curta).")
 
 from streamlit_option_menu import option_menu
 from images._my_images import Image

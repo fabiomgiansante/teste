@@ -29,12 +29,21 @@ def render_upload_page():
             st.success(f"Upload Realizado com sucesso: {uploaded_file.name}")
 
             st.info("Resumindo PDF com agentes")
+            
+            # Validar se a chave da API está disponível
+            if not os.getenv('OPENAI_API_KEY'):
+                st.error('⚠️ Erro: OPENAI_API_KEY não encontrada! Verifique os Secrets no Streamlit Cloud.')
+                return
 
             # Loader durante a execução da tarefa
             with st.spinner('Executando tarefas do Crew...'):
-                crew = CrewPDFResumo(temp_file_path)
-                time.sleep(1)  # Simulando um pequeno atraso (remova na produção)
-                resultado = crew.kickoff()  # Certifique-se de que esta é a tarefa demorada
+                try:
+                    crew = CrewPDFResumo(temp_file_path)
+                    time.sleep(1)  # Simulando um pequeno atraso (remova na produção)
+                    resultado = crew.kickoff()  # Certifique-se de que esta é a tarefa demorada
+                except Exception as e:
+                    st.error(f'Erro ao executar o crew: {e}')
+                    return
 
             st.text_area("Resumo via agentes:", resultado, height=300)
 
