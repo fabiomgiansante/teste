@@ -4,49 +4,49 @@ import os
 # CRÍTICO: Carregar Secrets ANTES de importar qualquer crew
 # Isso garante que as variáveis de ambiente estejam disponíveis quando os crews são inicializados
 
-# Carregar variáveis de ambiente do Streamlit Secrets (produção) ou .env (local)
-try:
-    from dotenv import load_dotenv
-    load_dotenv()
-except:
-    pass
-
-# Se estiver no Streamlit Cloud, usar secrets
+# PRIORIDADE 1: Carregar do Streamlit Secrets (produção) - MAIS IMPORTANTE
 try:
     if hasattr(st, 'secrets'):
-        # Carregar OPENAI_API_KEY
+        # Carregar OPENAI_API_KEY dos secrets
         try:
-            # Tentar diferentes formas de acessar os secrets
             api_key = None
+            # Tentar diferentes formas de acessar
             if 'OPENAI_API_KEY' in st.secrets:
                 api_key = st.secrets['OPENAI_API_KEY']
             elif hasattr(st.secrets, 'get'):
                 api_key = st.secrets.get('OPENAI_API_KEY')
             
             if api_key:
-                # Limpar espaços e quebras de linha
-                api_key = str(api_key).strip().replace('\n', '').replace('\r', '').replace(' ', '')
-                if api_key and len(api_key) > 10:
-                    os.environ['OPENAI_API_KEY'] = api_key
+                # Limpar apenas quebras de linha, NÃO remover espaços (chave pode ter espaços válidos)
+                api_key = str(api_key).strip().replace('\n', '').replace('\r', '')
+                # Sempre definir a variável de ambiente
+                os.environ['OPENAI_API_KEY'] = api_key
         except Exception as e:
             pass
         
-        # Carregar SERPER_API_KEY
+        # Carregar SERPER_API_KEY dos secrets
         try:
+            serper_key = None
             if 'SERPER_API_KEY' in st.secrets:
                 serper_key = st.secrets['SERPER_API_KEY']
-                serper_key = str(serper_key).strip().replace('\n', '').replace('\r', '')
-                if serper_key:
-                    os.environ['SERPER_API_KEY'] = serper_key
             elif hasattr(st.secrets, 'get'):
                 serper_key = st.secrets.get('SERPER_API_KEY')
-                if serper_key:
-                    serper_key = str(serper_key).strip().replace('\n', '').replace('\r', '')
-                    os.environ['SERPER_API_KEY'] = serper_key
+            
+            if serper_key:
+                serper_key = str(serper_key).strip().replace('\n', '').replace('\r', '')
+                os.environ['SERPER_API_KEY'] = serper_key
         except Exception as e:
             pass
 except Exception as e:
     pass
+
+# PRIORIDADE 2: Carregar do .env (desenvolvimento local) - APENAS se não estiver nos secrets
+if not os.getenv('OPENAI_API_KEY'):
+    try:
+        from dotenv import load_dotenv
+        load_dotenv(override=False)  # NÃO sobrescrever se já existe
+    except:
+        pass
 
 from streamlit_option_menu import option_menu
 from images._my_images import Image

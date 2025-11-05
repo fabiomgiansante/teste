@@ -5,8 +5,9 @@ from crewai_tools import PDFSearchTool
 from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
 
-# Load environment variables
-load_dotenv()
+# Load environment variables (apenas se não existir)
+if not os.getenv('OPENAI_API_KEY'):
+    load_dotenv(override=False)
 
 # Função para obter o modelo OpenAI apenas quando necessário
 def get_openai_model():
@@ -15,6 +16,9 @@ def get_openai_model():
     api_key = os.getenv('OPENAI_API_KEY')
     if not api_key:
         raise ValueError("OPENAI_API_KEY não encontrada nas variáveis de ambiente!")
+    
+    # Limpar apenas quebras de linha
+    api_key = str(api_key).strip().replace('\n', '').replace('\r', '')
     
     # Inicializar ChatOpenAI explicitamente com a API key
     return ChatOpenAI(
