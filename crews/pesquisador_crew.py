@@ -87,7 +87,7 @@ class CrewPDFResumo:
             tools=[self.pdf_tool],
             verbose=True,
             memory=False,
-            llm=gpt_mini
+            llm=get_openai_model()
         )
 
         # Agente Revisor
@@ -107,7 +107,7 @@ class CrewPDFResumo:
                       "sejam precisos e conformes às expectativas. {solicitacoes} {template}",
             verbose=True,
             memory=False,
-            llm=gpt_mini,
+            llm=get_openai_model(),
         )
 
         # Tarefa do Leitor
