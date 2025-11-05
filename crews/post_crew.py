@@ -8,14 +8,17 @@ from langchain_openai import ChatOpenAI
 # Carregar variáveis de ambiente do arquivo .env
 load_dotenv()
 
-# Não inicializar ChatOpenAI aqui - será feito pelo CrewAI usando variáveis de ambiente
+# Função para obter o modelo OpenAI apenas quando necessário
+def get_openai_model():
+    """Retorna o modelo OpenAI, inicializando apenas quando necessário"""
+    return ChatOpenAI(model_name="gpt-4o-mini", temperature=0.7)
 
 class CrewPostagem:
 
     def __init__(self):
         
         self.search_tool = SerperDevTool()
-        self.llm = "gpt-4o-mini"
+        self.llm = get_openai_model()
         
         self.crew = self._criar_crew()
 
@@ -32,7 +35,8 @@ class CrewPostagem:
                 'Você é um pesquisador especializado em descobrir informações'
                 ' úteis e relevantes para escrever sobre {topic}.'
             ),
-            tools=[self.search_tool]
+            tools=[self.search_tool],
+            llm=self.llm
         )
 
         escritor = Agent(
@@ -43,7 +47,8 @@ class CrewPostagem:
             backstory=(
                 'Você é um redator experiente que transforma informações em'
                 ' conteúdos interessantes e informativos.'
-            )
+            ),
+            llm=self.llm
         )
 
         revisor = Agent(
@@ -54,7 +59,8 @@ class CrewPostagem:
             backstory=(
                 'Você é um revisor detalhista, especializado em ajustar o tom,'
                 ' a clareza e a gramática de textos.'
-            )
+            ),
+            llm=self.llm
         )
 
         # Tarefas

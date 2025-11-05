@@ -19,11 +19,16 @@ try:
             # Tentar diferentes formas de acessar os secrets
             if 'OPENAI_API_KEY' in st.secrets:
                 api_key = st.secrets['OPENAI_API_KEY']
-                os.environ['OPENAI_API_KEY'] = str(api_key) if api_key else ""
+                # Limpar espaços e quebras de linha
+                api_key = str(api_key).strip().replace('\n', '').replace('\r', '')
+                if api_key and len(api_key) > 10:
+                    os.environ['OPENAI_API_KEY'] = api_key
             elif hasattr(st.secrets, 'get'):
                 api_key = st.secrets.get('OPENAI_API_KEY')
                 if api_key:
-                    os.environ['OPENAI_API_KEY'] = str(api_key)
+                    api_key = str(api_key).strip().replace('\n', '').replace('\r', '')
+                    if len(api_key) > 10:
+                        os.environ['OPENAI_API_KEY'] = api_key
         except Exception as e:
             pass
         
@@ -31,11 +36,14 @@ try:
         try:
             if 'SERPER_API_KEY' in st.secrets:
                 serper_key = st.secrets['SERPER_API_KEY']
-                os.environ['SERPER_API_KEY'] = str(serper_key) if serper_key else ""
+                serper_key = str(serper_key).strip().replace('\n', '').replace('\r', '')
+                if serper_key:
+                    os.environ['SERPER_API_KEY'] = serper_key
             elif hasattr(st.secrets, 'get'):
                 serper_key = st.secrets.get('SERPER_API_KEY')
                 if serper_key:
-                    os.environ['SERPER_API_KEY'] = str(serper_key)
+                    serper_key = str(serper_key).strip().replace('\n', '').replace('\r', '')
+                    os.environ['SERPER_API_KEY'] = serper_key
         except Exception as e:
             pass
 except Exception as e:

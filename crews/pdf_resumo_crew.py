@@ -2,21 +2,23 @@ import os
 from crewai import Agent, Task, Crew, Process
 from crewai_tools import PDFSearchTool
 from dotenv import load_dotenv
-
 from langchain_openai import ChatOpenAI
 
 
 # Carregar variáveis de ambiente do arquivo .env
 load_dotenv()
 
-# Não inicializar ChatOpenAI aqui - será feito pelo CrewAI usando variáveis de ambiente
+# Função para obter o modelo OpenAI apenas quando necessário
+def get_openai_model():
+    """Retorna o modelo OpenAI, inicializando apenas quando necessário"""
+    return ChatOpenAI(model_name="gpt-4o-mini", temperature=0.7)
 
 
 class CrewPDFResumo:
 
     def __init__(self, pdf_path):
         self.pdf_tool = PDFSearchTool(pdf_path)  # Tool nativa do CrewAI para leitura de PDF
-        self.llm = "gpt-4o-mini"  # Configuração do modelo LLM
+        self.llm = get_openai_model()  # Configuração do modelo LLM
         self.crew = self._criar_crew()
 
     def _criar_crew(self):
@@ -28,7 +30,8 @@ class CrewPDFResumo:
             memory=True,
             backstory='''Você é um especialista em sintetizar informações de documentos extensos. 
                         Seu objetivo é identificar os pontos principais e entregar um resumo conciso e útil.''',
-            tools=[self.pdf_tool]  # Associando a tool de leitura de PDF ao agente
+            tools=[self.pdf_tool],  # Associando a tool de leitura de PDF ao agente
+            llm=self.llm
         )
 
         # Tarefa de resumo
