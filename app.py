@@ -28,8 +28,6 @@ try:
                 api_key = str(api_key).strip().replace('\n', '').replace('\r', '').replace(' ', '')
                 if api_key and len(api_key) > 10:
                     os.environ['OPENAI_API_KEY'] = api_key
-                    # Forçar atualização da variável de ambiente
-                    os.putenv('OPENAI_API_KEY', api_key)
         except Exception as e:
             pass
         
@@ -49,15 +47,6 @@ try:
             pass
 except Exception as e:
     pass
-
-# Debug: Verificar se a chave foi carregada
-if not hasattr(st.session_state, 'api_key_checked'):
-    st.session_state.api_key_checked = True
-    api_key = os.getenv('OPENAI_API_KEY')
-    if not api_key or api_key == "":
-        st.sidebar.error("❌ OPENAI_API_KEY não configurada! Configure nos Secrets do Streamlit Cloud.")
-    elif len(api_key) < 20:
-        st.sidebar.warning("⚠️ OPENAI_API_KEY parece inválida (muito curta).")
 
 from streamlit_option_menu import option_menu
 from images._my_images import Image
@@ -144,6 +133,15 @@ st.sidebar.image(
     use_container_width=True,
     width=200
 )
+
+# Debug: Verificar se a chave foi carregada (após sidebar estar disponível)
+if not hasattr(st.session_state, 'api_key_checked'):
+    st.session_state.api_key_checked = True
+    api_key = os.getenv('OPENAI_API_KEY')
+    if not api_key or api_key == "":
+        st.sidebar.error("❌ OPENAI_API_KEY não configurada! Configure nos Secrets do Streamlit Cloud.")
+    elif len(api_key) < 20:
+        st.sidebar.warning("⚠️ OPENAI_API_KEY parece inválida (muito curta).")
 
 # Sidebar menu
 with st.sidebar:
