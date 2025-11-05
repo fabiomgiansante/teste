@@ -9,8 +9,7 @@ from langchain_openai import ChatOpenAI
 # Carregar variáveis de ambiente do arquivo .env
 load_dotenv()
 
-# Inicializar o modelo OpenAI
-gpt_mini = ChatOpenAI(model_name='gpt-4o-mini')
+# Não inicializar ChatOpenAI aqui - será feito pelo CrewAI usando variáveis de ambiente
 
 
 class CrewPDFResumo:

@@ -7,10 +7,11 @@ from langchain_openai import ChatOpenAI
 
 # Load environment variables
 load_dotenv()
-os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY")
 
-# Configuração do modelo OpenAI
-gpt_mini = ChatOpenAI(model_name="gpt-3.5-turbo", provider="openai")
+# Função para obter o modelo OpenAI apenas quando necessário
+def get_openai_model():
+    """Retorna o modelo OpenAI, inicializando apenas quando necessário"""
+    return ChatOpenAI(model_name="gpt-3.5-turbo", provider="openai")
 
 # SOLICITAÇÕES
 solicitacoes = """
