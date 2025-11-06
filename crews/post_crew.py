@@ -20,6 +20,13 @@ def get_openai_model():
     # Limpar apenas quebras de linha
     api_key = str(api_key).strip().replace('\n', '').replace('\r', '')
     
+    # Validação rigorosa da chave
+    if not api_key.startswith('sk-'):
+        raise ValueError(f"OPENAI_API_KEY inválida! Deve começar com 'sk-'. Recebido: {api_key[:15]}...")
+    
+    if len(api_key) < 50:
+        raise ValueError(f"OPENAI_API_KEY muito curta! Chaves OpenAI têm 100+ caracteres. Recebido: {len(api_key)} caracteres")
+    
     # Inicializar ChatOpenAI explicitamente com a API key
     return ChatOpenAI(
         model_name="gpt-4o-mini", 
@@ -44,7 +51,7 @@ class CrewPostagem:
             role='Pesquisador',
             goal='Encontrar informações relevantes sobre {topic}',
             verbose=True,
-            memory=True,
+            memory=False,  # Desabilitado para evitar problemas com Qdrant
             backstory=(
                 'Você é um pesquisador especializado em descobrir informações'
                 ' úteis e relevantes para escrever sobre {topic}.'
@@ -57,7 +64,7 @@ class CrewPostagem:
             role='Escritor',
             goal='Criar uma postagem convincente sobre {topic}',
             verbose=True,
-            memory=True,
+            memory=False,  # Desabilitado para evitar problemas com Qdrant
             backstory=(
                 'Você é um redator experiente que transforma informações em'
                 ' conteúdos interessantes e informativos.'
@@ -69,7 +76,7 @@ class CrewPostagem:
             role='Revisor',
             goal='Revisar e melhorar a postagem sobre {topic}',
             verbose=True,
-            memory=True,
+            memory=False,  # Desabilitado para evitar problemas com Qdrant
             backstory=(
                 'Você é um revisor detalhista, especializado em ajustar o tom,'
                 ' a clareza e a gramática de textos.'

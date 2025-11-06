@@ -31,10 +31,21 @@ def render_post_page():
             st.warning(f'⚠️ Aviso: OPENAI_API_KEY parece muito curta ({len(api_key)} caracteres). Chaves OpenAI normalmente têm 100+ caracteres.')
         
         #Quanto clicar no botão carrega um loader
+        progress_bar = st.progress(0)
+        status_text = st.empty()
+        
         with st.spinner('Executando tarefas do Crew...'):
             try:
+                status_text.text('Inicializando crew...')
+                progress_bar.progress(10)
                 crew_postagem = CrewPostagem()
+                
+                status_text.text('Executando pesquisa...')
+                progress_bar.progress(30)
                 result = crew_postagem.kickoff(inputs={'topic': tema})
+                
+                progress_bar.progress(100)
+                status_text.text('Processo concluído!')
                 st.success('Processo concluído!')
             except ValueError as e:
                 # Erro de validação da API key

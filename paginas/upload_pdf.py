@@ -46,11 +46,21 @@ def render_upload_page():
                 st.warning(f'⚠️ Aviso: OPENAI_API_KEY parece muito curta ({len(api_key)} caracteres). Chaves OpenAI normalmente têm 100+ caracteres.')
 
             # Loader durante a execução da tarefa
+            progress_bar = st.progress(0)
+            status_text = st.empty()
+            
             with st.spinner('Executando tarefas do Crew...'):
                 try:
+                    status_text.text('Inicializando crew...')
+                    progress_bar.progress(10)
                     crew = CrewPDFResumo(temp_file_path)
-                    time.sleep(1)  # Simulando um pequeno atraso (remova na produção)
-                    resultado = crew.kickoff()  # Certifique-se de que esta é a tarefa demorada
+                    
+                    status_text.text('Lendo PDF e gerando resumo...')
+                    progress_bar.progress(30)
+                    resultado = crew.kickoff()
+                    
+                    progress_bar.progress(100)
+                    status_text.text('Resumo concluído!')
                 except ValueError as e:
                     # Erro de validação da API key
                     st.error(f'⚠️ Erro de validação: {e}')

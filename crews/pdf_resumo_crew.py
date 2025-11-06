@@ -20,6 +20,13 @@ def get_openai_model():
     # Limpar apenas quebras de linha
     api_key = str(api_key).strip().replace('\n', '').replace('\r', '')
     
+    # Validação rigorosa da chave
+    if not api_key.startswith('sk-'):
+        raise ValueError(f"OPENAI_API_KEY inválida! Deve começar com 'sk-'. Recebido: {api_key[:15]}...")
+    
+    if len(api_key) < 50:
+        raise ValueError(f"OPENAI_API_KEY muito curta! Chaves OpenAI têm 100+ caracteres. Recebido: {len(api_key)} caracteres")
+    
     # Inicializar ChatOpenAI explicitamente com a API key
     return ChatOpenAI(
         model_name="gpt-4o-mini", 
@@ -41,7 +48,7 @@ class CrewPDFResumo:
             role='''Resumidor''',
             goal='''Criar um resumo do conteúdo de um PDF.''',
             verbose=True,
-            memory=True,
+            memory=False,  # Desabilitado para evitar problemas com Qdrant
             backstory='''Você é um especialista em sintetizar informações de documentos extensos. 
                         Seu objetivo é identificar os pontos principais e entregar um resumo conciso e útil.''',
             tools=[self.pdf_tool],  # Associando a tool de leitura de PDF ao agente
