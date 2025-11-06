@@ -31,9 +31,19 @@ def render_upload_page():
             st.info("Resumindo PDF com agentes")
             
             # Validar se a chave da API está disponível
-            if not os.getenv('OPENAI_API_KEY'):
+            api_key = os.getenv('OPENAI_API_KEY')
+            if not api_key:
                 st.error('⚠️ Erro: OPENAI_API_KEY não encontrada! Verifique os Secrets no Streamlit Cloud.')
                 return
+            
+            # Validar formato da chave
+            if not api_key.startswith('sk-'):
+                st.error(f'⚠️ Erro: OPENAI_API_KEY parece inválida! Deve começar com "sk-". Primeiros caracteres: {api_key[:10]}...')
+                st.info('💡 Dica: Verifique se a chave está completa nos Secrets do Streamlit Cloud.')
+                return
+            
+            if len(api_key) < 50:
+                st.warning(f'⚠️ Aviso: OPENAI_API_KEY parece muito curta ({len(api_key)} caracteres). Chaves OpenAI normalmente têm 100+ caracteres.')
 
             # Loader durante a execução da tarefa
             with st.spinner('Executando tarefas do Crew...'):
@@ -41,8 +51,28 @@ def render_upload_page():
                     crew = CrewPDFResumo(temp_file_path)
                     time.sleep(1)  # Simulando um pequeno atraso (remova na produção)
                     resultado = crew.kickoff()  # Certifique-se de que esta é a tarefa demorada
+                except ValueError as e:
+                    # Erro de validação da API key
+                    st.error(f'⚠️ Erro de validação: {e}')
+                    st.info('💡 Verifique se a OPENAI_API_KEY está correta nos Secrets do Streamlit Cloud.')
+                    return
                 except Exception as e:
-                    st.error(f'Erro ao executar o crew: {e}')
+                    error_msg = str(e)
+                    if '401' in error_msg or 'invalid_api_key' in error_msg or 'Incorrect API key' in error_msg:
+                        st.error('❌ Erro: API Key da OpenAI está incorreta ou inválida!')
+                        st.info('''
+                        **Como corrigir:**
+                        1. Acesse: https://platform.openai.com/account/api-keys
+                        2. Crie uma nova chave ou copie a chave existente
+                        3. No Streamlit Cloud: "Manage app" → "Settings" → "Secrets"
+                        4. Cole a chave completa no formato:
+                           ```
+                           OPENAI_API_KEY = "sk-proj-sua-chave-completa-aqui"
+                           ```
+                        5. Salve e reinicie o app
+                        ''')
+                    else:
+                        st.error(f'Erro ao executar o crew: {e}')
                     return
 
             st.text_area("Resumo via agentes:", resultado, height=300)
