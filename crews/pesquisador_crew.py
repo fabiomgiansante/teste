@@ -20,9 +20,16 @@ def get_openai_model():
     # Limpar apenas quebras de linha
     api_key = str(api_key).strip().replace('\n', '').replace('\r', '')
     
+    # Validação rigorosa da chave
+    if not api_key.startswith('sk-'):
+        raise ValueError(f"OPENAI_API_KEY inválida! Deve começar com 'sk-'. Recebido: {api_key[:15]}...")
+    
+    if len(api_key) < 50:
+        raise ValueError(f"OPENAI_API_KEY muito curta! Chaves OpenAI têm 100+ caracteres. Recebido: {len(api_key)} caracteres")
+    
     # Inicializar ChatOpenAI explicitamente com a API key
     return ChatOpenAI(
-        model_name="gpt-3.5-turbo", 
+        model_name="gpt-4o-mini",  # Mudado para gpt-4o-mini para consistência
         temperature=0.7,
         api_key=api_key
     )
@@ -150,11 +157,10 @@ class CrewPDFResumo:
         )
 
     def kickoff(self):
-        # Converta o template para string antes de passar como entrada
-        template_str = yaml.dump(template)
+        # Passar template como string diretamente (sem yaml.dump que pode causar problemas)
         resposta = self.crew.kickoff(inputs={
             'solicitacoes': solicitacoes,
-            'template': template_str,  # Agora é uma string em YAML
+            'template': template,  # Passar template como string diretamente
             'restrições': restrições,
             'controles': controles,
         })
