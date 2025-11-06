@@ -36,31 +36,48 @@ def get_openai_model():
 
 # SOLICITAÇÕES
 solicitacoes = """
-1 - OBJETIVOS - Identificação dos Objetivos: Realize uma análise cuidadosa do conteúdo do trabalho para extrair os objetivos principais. Resuma esses objetivos em um parágrafo claro e conciso, capturando a essência das metas e intenções do estudo.
-2 - GAP - Identificação do GAP: Analise o conteúdo do trabalho para identificar o GAP científico que ele aborda, mesmo que não esteja explicitamente mencionado. Formule um parágrafo conciso, focando em destacar a questão central que o estudo procura resolver ou elucidar.
-3 - METODOLOGIA - Extração Detalhada da Metodologia do Trabalho: Identificação e Descrição da Metodologia: Proceda com uma análise minuciosa do trabalho para identificar a metodologia utilizada. Detalhe cada aspecto da metodologia, sempre incluindo o número de participantes quando descrito no estudo, incluindo o desenho do estudo, as técnicas e ferramentas empregadas, os procedimentos de coleta e análise de dados, os passos do método e quaisquer metodologias específicas ou inovadoras adotadas. Formule uma descrição compreensiva em texto corrido, limitando-se a um máximo de 250 palavras para manter a concisão sem sacrificar detalhes importantes.
-4 - DATASET - Identifique os datasets usados no trabalho. Descreva-os brevemente em texto corrido, limitando-se a 40 palavras. Quero somente o nome dos dataset na mesma linha e separados por virgula. Se o dataset foi criado pelos autores escreve "OWN DATASET"
-5 - RESULTADOS - Escreva em um parágrafo os resultados obitidos estudo dando enfase a dados quantitativos, quero dados numéricos explicitamente. Nesse paragrafo também dê enfase a comparação ao melhor trabalho anterior em relação ao trabalho proposto. Não use superlativos. Deixe o tom neutro e científico.
-6 - LIMITAÇÕES - Produza um texto parafraseado das limitações do trabalho.
-7 - CONCLUSÃO - Resuma as conclusões dos autores em relação ao trabalho.
-8 - FUTURO - Extraia as Recomendações para Pesquisa Futura: Aponte recomendações para futuras investigações baseadas nas conclusões do artigo.
-9 - AVALIAÇÃO - Faça uma avaliação crítica ao trabalho. Não seja generalista faça uma crítica aprofundada.
+IMPORTANTE: Use APENAS informações que estão explicitamente no PDF fornecido. NUNCA invente, infira ou adicione informações de outros estudos.
+
+1 - OBJETIVOS - Identificação dos Objetivos: Extraia do PDF os objetivos principais do estudo. Se os objetivos não estiverem claramente definidos no PDF, escreva "Objetivos não explicitamente definidos no documento" ou similar. Resuma em um parágrafo claro e conciso, capturando APENAS o que está no PDF.
+
+2 - GAP - Identificação do GAP: Analise o PDF para identificar o GAP científico mencionado. Se o GAP não estiver explicitamente mencionado no PDF, escreva "GAP não explicitamente mencionado no documento". Formule um parágrafo conciso baseado APENAS no conteúdo do PDF.
+
+3 - METODOLOGIA - Extração Detalhada da Metodologia: Extraia do PDF a metodologia utilizada. Inclua o número de participantes APENAS se estiver mencionado no PDF. Detalhe cada aspecto da metodologia que está no documento. Se alguma informação metodológica não estiver no PDF, não invente. Formule uma descrição em texto corrido, limitando-se a um máximo de 250 palavras, usando APENAS informações do PDF.
+
+4 - DATASET - Identifique os datasets mencionados no PDF. Se não houver menção a datasets, escreva "Nenhum dataset mencionado no documento" ou "OWN DATASET" se o documento indicar que os autores criaram seus próprios dados. Limite-se a 40 palavras. Apenas nomes dos datasets na mesma linha, separados por vírgula.
+
+5 - RESULTADOS - Escreva em um parágrafo os resultados mencionados no PDF, dando ênfase a dados quantitativos que estão explicitamente no documento. Use APENAS números e dados que estão no PDF. Se houver comparação com trabalhos anteriores no PDF, mencione. Se não houver, não invente comparações. Não use superlativos. Tom neutro e científico.
+
+6 - LIMITAÇÕES - Extraia do PDF as limitações mencionadas pelos autores. Se não houver seção de limitações, escreva "Limitações não explicitamente mencionadas no documento". Produza um texto parafraseado baseado APENAS no que está no PDF.
+
+7 - CONCLUSÃO - Resuma as conclusões que estão no PDF. Use APENAS as conclusões mencionadas pelos autores no documento. Se não houver seção de conclusão clara, indique isso.
+
+8 - FUTURO - Extraia do PDF as recomendações para pesquisa futura mencionadas. Se não houver recomendações explícitas, escreva "Recomendações para pesquisa futura não explicitamente mencionadas no documento".
+
+9 - AVALIAÇÃO - Faça uma avaliação crítica baseada APENAS no conteúdo do PDF fornecido. Não compare com outros estudos que não estão mencionados no PDF. Seja específico e baseie-se apenas no que está no documento.
 """
 
 # CONTROLES
 controles = """
 NÍVEIS DE CONTROLE:
 1. Entonação: Formal Científico.
-2. Foco de Tópico: Você deve responder sempre com alto foco no texto do artigo científico.
+2. Foco de Tópico: Você deve responder sempre com alto foco no texto do artigo científico FORNECIDO. Use APENAS informações deste PDF específico.
 3. Língua: Responda sempre em Português do Brasil como os Brasileiros costumam escrever textos científicos aderindo aos padrões de redação científica do país, a não ser o que será especificado para não traduzir.
 4. Controle de Sentimento: Neutro e científico. Evite superlativos como: inovador, revolucionário e etc.
-5. Nível Originalidade: 10, onde 1 é pouco original e 10 é muito original. Em hipótese alguma copie frases do texto original.
-6. Nível de Abstração: 1, onde 1 é muito concreto e real e 10 é muito abstrato e irreal.
+5. Nível Originalidade: 10, onde 1 é pouco original e 10 é muito original. Em hipótese alguma copie frases do texto original. MAS: NUNCA invente informações que não estão no PDF.
+6. Nível de Abstração: 1, onde 1 é muito concreto e real e 10 é muito abstrato e irreal. Baseie-se APENAS em dados concretos do PDF.
 7. Tempo Verbal: Escreva no passado.
+8. PRECISÃO CRÍTICA: Se uma informação não estiver no PDF, você DEVE escrever "Informação não disponível no documento" ou similar. NUNCA invente ou infira dados.
 """
 
 # Restrições
 restrições = """
+RESTRIÇÕES CRÍTICAS:
+1. Use APENAS informações do PDF fornecido. NUNCA adicione informações de outros estudos ou conhecimento prévio.
+2. Se uma informação não estiver no PDF, escreva "Informação não disponível no documento" ou similar.
+3. NUNCA invente números, resultados, conclusões ou dados.
+4. NUNCA faça inferências além do que está explicitamente no PDF.
+
 O QUE NÃO DEVE SER TRADUZIDO DO INGLÊS PARA PORTUGUÊS:
 1. Termos técnicos em inglês amplamente aceitos e usados nos textos em português.
 2. Nome de algoritmos de machine learning.
@@ -97,11 +114,12 @@ class CrewPDFResumo:
         # Agente Leitor
         agent_leitor = Agent(
             role='PDF Reader',
-            goal="Ler PDFs e extrair informações específicas conforme definido nas solicitações em <solicitacoes>."
-                 "Gerar um YAML de acordo com o modelo especificado em <template>. {solicitacoes} {template}.",
-            backstory="Você é um especialista em leitura e análise de artigos científicos. "
-                      "Sua missão é extrair informações cruciais, compreendendo o contexto semântico completo dos artigos."
-                      "Sua função é fundamental para avaliar a relevância dos artigos analisados."
+            goal="Extrair EXATAMENTE as informações que estão no PDF fornecido, sem inventar, adicionar ou inferir dados que não estão explicitamente no documento. "
+                 "Gerar um YAML de acordo com o modelo especificado em <template> usando APENAS informações do PDF. {solicitacoes} {template}.",
+            backstory="Você é um especialista em leitura e análise de artigos científicos com extrema precisão. "
+                      "Sua missão é extrair informações EXATAS do PDF fornecido, sem adicionar informações de outros estudos ou inferir dados não presentes no documento. "
+                      "CRÍTICO: Você DEVE usar APENAS o conteúdo do PDF fornecido. Se uma informação não estiver no PDF, você DEVE escrever 'Informação não disponível no documento' ou similar. "
+                      "NUNCA invente dados, números, resultados ou conclusões que não estejam explicitamente no PDF. "
                       "Ao responder às solicitações delimitadas por <solicitacoes></solicitacoes>,"
                       "você deve levar em consideração as definições de controles em <controles></controles>"
                       "e as restrições em <restrições></restrições>."
@@ -115,18 +133,19 @@ class CrewPDFResumo:
         # Agente Revisor
         agent_revisor = Agent(
             role="Revisor de leitura",
-            goal="Leia os dados extraídos pelo Agente Leitor e verifique se um YAML foi produzido,"
-                 "de acordo com o template proposto em <template>,"
-                 "com os dados solicitados em <solicitacoes>."
-                 "Como resultado do seu trabalho, você deve retornar um YAML"
-                 "revisado no mesmo formato do template proposto. {solicitacoes} {template}",
-            backstory="Você é um especialista na revisão de informações em YAML"
-                      "especialmente de resumos de artigos científicos."
-                      "Sua função é garantir que os dados extraídos reflitam"
-                      "com precisão as solicitações definidas em <solicitacoes>"
-                      "e estejam formatados conforme o template proposto em <template>."
+            goal="Revisar o YAML produzido pelo Agente Leitor garantindo que: "
+                 "1) Todas as informações vieram APENAS do PDF fornecido, "
+                 "2) Nenhuma informação foi inventada ou inferida, "
+                 "3) O formato está de acordo com o template proposto em <template>, "
+                 "4) Todos os campos solicitados em <solicitacoes> foram preenchidos. "
+                 "Se encontrar informações que parecem inventadas, remova-as ou marque como 'Informação não disponível'. {solicitacoes} {template}",
+            backstory="Você é um especialista na revisão de informações em YAML "
+                      "especialmente de resumos de artigos científicos. "
+                      "Sua função é garantir que os dados extraídos reflitam "
+                      "com precisão APENAS o conteúdo do PDF fornecido, sem adicionar informações de outros estudos. "
+                      "CRÍTICO: Se você identificar informações que não estão no PDF original, você DEVE removê-las ou substituí-las por 'Informação não disponível no documento'. "
                       "Sua atenção aos detalhes assegura que os resultados finais "
-                      "sejam precisos e conformes às expectativas. {solicitacoes} {template}",
+                      "sejam precisos, baseados exclusivamente no PDF fornecido e formatados conforme o template proposto em <template>. {solicitacoes} {template}",
             verbose=True,
             memory=False,
             llm=self.llm,
@@ -134,18 +153,25 @@ class CrewPDFResumo:
 
         # Tarefa do Leitor
         task_leitor = Task(
-            description="Leia o PDF e responda em YAML às solicitações definidas em <solicitacoes>"
-                        "usando o modelo definido em <template>.",
-            expected_output="YAML com as respostas às solicitações definidas em <solicitacoes>, usando o modelo definido em <template>",
+            description="Leia o PDF fornecido usando a ferramenta PDFSearchTool e extraia APENAS as informações que estão explicitamente no documento. "
+                        "Responda em YAML às solicitações definidas em <solicitacoes> usando o modelo definido em <template>. "
+                        "IMPORTANTE: Use APENAS informações do PDF. Se uma informação não estiver no PDF, escreva 'Informação não disponível no documento'. "
+                        "NUNCA invente dados, números, resultados ou conclusões. "
+                        "Se o PDF não contiver informações sobre um tópico solicitado, seja honesto e indique que a informação não está disponível.",
+            expected_output="YAML com as respostas às solicitações definidas em <solicitacoes>, usando o modelo definido em <template>, contendo APENAS informações extraídas do PDF fornecido",
             agent=agent_leitor
         )
 
         # Tarefa do Revisor
         task_revisor = Task(
-            description="Revise o YAML produzido pelo agente leitor para garantir que ele esteja de acordo com o template definido em <template>"
-                        " e contenha todas as informações solicitadas em <solicitacoes>. {solicitacoes} {template}",
-            expected_output="YAML revisado que esteja de acordo com o template definido em <template>"
-                            " e contenha todas as informações solicitadas em <solicitacoes>. {solicitacoes} {template}",
+            description="Revise o YAML produzido pelo agente leitor garantindo que: "
+                        "1) Todas as informações vieram APENAS do PDF (sem informações inventadas), "
+                        "2) O formato está de acordo com o template definido em <template>, "
+                        "3) Contém todas as informações solicitadas em <solicitacoes> (ou indica 'Informação não disponível' quando apropriado). "
+                        "Se identificar informações que parecem inventadas ou de outros estudos, remova-as ou substitua por 'Informação não disponível no documento'. {solicitacoes} {template}",
+            expected_output="YAML revisado e validado que esteja de acordo com o template definido em <template>, "
+                            "contenha todas as informações solicitadas em <solicitacoes> (ou indique quando não disponível), "
+                            "e contenha APENAS informações extraídas do PDF fornecido, sem alucinações ou informações inventadas. {solicitacoes} {template}",
             agent=agent_revisor
         )
 
