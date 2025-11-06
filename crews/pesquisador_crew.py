@@ -28,9 +28,10 @@ def get_openai_model():
         raise ValueError(f"OPENAI_API_KEY muito curta! Chaves OpenAI têm 100+ caracteres. Recebido: {len(api_key)} caracteres")
     
     # Inicializar ChatOpenAI explicitamente com a API key
+    # Temperatura reduzida para melhor precisão na extração de dados
     return ChatOpenAI(
         model_name="gpt-4o-mini",  # Mudado para gpt-4o-mini para consistência
-        temperature=0.7,
+        temperature=0.3,  # Reduzido de 0.7 para 0.3 para melhor precisão
         api_key=api_key
     )
 
@@ -89,23 +90,31 @@ O QUE NÃO DEVE SER TRADUZIDO DO INGLÊS PARA PORTUGUÊS:
 
 # Template de saída
 template = """
-<template>
 ARTIGO:
-  - TÍTULO: "Título do artigo"
-  - ARQUIVO: "nome do arquivo.pdf"
-  - OBJETIVOS: "Objetivo geral e específicos"
-  - GAP: "Gap científico"
-  - METODOLOGIA: "Metodologia"
-  - DATASET: "Datasets utilizados"
-  - RESULTADOS: "Resultados do artigo"
-  - LIMITAÇÕES: "Limitações do artigo científico"
-  - CONCLUSÃO: "Conclusões"
-  - AVALIAÇÃO: "Análise do artigo"
-</template>
+  - TÍTULO: "[Extrair o título real do PDF]"
+  - ARQUIVO: "[Nome real do arquivo PDF]"
+  - OBJETIVOS: "[Extrair objetivos reais do PDF]"
+  - GAP: "[Extrair gap real do PDF ou indicar se não encontrado]"
+  - METODOLOGIA: "[Extrair metodologia real do PDF]"
+  - DATASET: "[Extrair datasets reais do PDF ou indicar se não encontrado]"
+  - RESULTADOS: "[Extrair resultados reais do PDF]"
+  - LIMITAÇÕES: "[Extrair limitações reais do PDF ou indicar se não encontrado]"
+  - CONCLUSÃO: "[Extrair conclusões reais do PDF]"
+  - FUTURO: "[Extrair recomendações futuras reais do PDF ou indicar se não encontrado]"
+  - AVALIAÇÃO: "[Fazer avaliação crítica baseada no PDF]"
 """
 
 class CrewPDFResumo:
     def __init__(self, pdf_path):
+        # Verificar se o arquivo existe
+        if not os.path.exists(pdf_path):
+            raise FileNotFoundError(f"PDF não encontrado: {pdf_path}")
+        
+        # Verificar se é um arquivo PDF
+        if not pdf_path.lower().endswith('.pdf'):
+            raise ValueError(f"Arquivo deve ser um PDF: {pdf_path}")
+        
+        self.pdf_path = pdf_path
         self.pdf_tool = PDFSearchTool(pdf_path)  # Tool nativa do CrewAI para leitura de PDF
         self.llm = get_openai_model()  # Inicializar o modelo uma vez
         self.crew = self._criar_crew()
@@ -114,12 +123,18 @@ class CrewPDFResumo:
         # Agente Leitor
         agent_leitor = Agent(
             role='PDF Reader',
-            goal="Extrair EXATAMENTE as informações que estão no PDF fornecido, sem inventar, adicionar ou inferir dados que não estão explicitamente no documento. "
-                 "Gerar um YAML de acordo com o modelo especificado em <template> usando APENAS informações do PDF. {solicitacoes} {template}.",
-            backstory="Você é um especialista em leitura e análise de artigos científicos com extrema precisão. "
-                      "Sua missão é extrair informações EXATAS do PDF fornecido, sem adicionar informações de outros estudos ou inferir dados não presentes no documento. "
-                      "CRÍTICO: Você DEVE usar APENAS o conteúdo do PDF fornecido. Se uma informação não estiver no PDF, você DEVE escrever 'Informação não disponível no documento' ou similar. "
-                      "NUNCA invente dados, números, resultados ou conclusões que não estejam explicitamente no PDF. "
+            goal="Ler o PDF fornecido usando a ferramenta PDFSearchTool e extrair informações reais do documento. "
+                 "Gerar um YAML completo com informações extraídas do PDF conforme <template>. "
+                 "Use a ferramenta para buscar e ler o conteúdo do PDF antes de responder. {solicitacoes} {template}.",
+            backstory="Você é um especialista em leitura e análise de artigos científicos. "
+                      "Sua missão é usar a ferramenta PDFSearchTool para ler o PDF fornecido e extrair informações reais do documento. "
+                      "PASSO 1: Use a ferramenta PDFSearchTool para ler o PDF completamente. "
+                      "PASSO 2: Busque informações específicas no PDF usando termos relevantes. "
+                      "PASSO 3: Extraia as informações encontradas e organize em YAML. "
+                      "CRÍTICO: Você DEVE usar a ferramenta PDFSearchTool para ler o PDF. Não responda sem usar a ferramenta. "
+                      "Se uma informação não estiver no PDF após buscar cuidadosamente, escreva 'Informação não disponível no documento'. "
+                      "NUNCA invente dados, números, resultados ou conclusões. "
+                      "Use APENAS informações que você encontrou no PDF através da ferramenta. "
                       "Ao responder às solicitações delimitadas por <solicitacoes></solicitacoes>,"
                       "você deve levar em consideração as definições de controles em <controles></controles>"
                       "e as restrições em <restrições></restrições>."
@@ -153,13 +168,35 @@ class CrewPDFResumo:
 
         # Tarefa do Leitor
         task_leitor = Task(
-            description="Leia o PDF fornecido usando a ferramenta PDFSearchTool e extraia APENAS as informações que estão explicitamente no documento. "
-                        "Responda em YAML às solicitações definidas em <solicitacoes> usando o modelo definido em <template>. "
-                        "IMPORTANTE: Use APENAS informações do PDF. Se uma informação não estiver no PDF, escreva 'Informação não disponível no documento'. "
-                        "NUNCA invente dados, números, resultados ou conclusões. "
-                        "Se o PDF não contiver informações sobre um tópico solicitado, seja honesto e indique que a informação não está disponível.",
-            expected_output="YAML com as respostas às solicitações definidas em <solicitacoes>, usando o modelo definido em <template>, contendo APENAS informações extraídas do PDF fornecido",
-            agent=agent_leitor
+            description=f"""
+PRIMEIRO: Use a ferramenta PDFSearchTool para ler o conteúdo completo do PDF localizado em: {self.pdf_path}
+
+INSTRUÇÕES DE LEITURA:
+1. Use a ferramenta PDFSearchTool com a query vazia ou "*" para ler todo o PDF primeiro
+2. Depois, faça buscas específicas no PDF usando termos como: 'title', 'objetivo', 'objective', 'metodologia', 'methodology', 'resultados', 'results', 'conclusão', 'conclusion', 'limitações', 'limitations', etc.
+3. Leia cuidadosamente todo o conteúdo do PDF antes de responder
+4. Para o TÍTULO: Busque por "title", "título", ou leia a primeira página do PDF
+5. Para o ARQUIVO: Use o nome do arquivo: {os.path.basename(self.pdf_path)}
+
+DEPOIS: Extraia as informações solicitadas em <solicitacoes> e organize em YAML conforme <template>.
+Para cada campo solicitado, busque no PDF usando a ferramenta.
+Se encontrar a informação no PDF, extraia e parafraseie.
+Se NÃO encontrar após buscar cuidadosamente, escreva 'Informação não disponível no documento'.
+
+CRÍTICO: Você DEVE usar a ferramenta PDFSearchTool para ler o PDF. Não responda sem ler o PDF primeiro.
+NUNCA invente dados, números, resultados ou conclusões.
+Use APENAS informações que você encontrou no PDF através da ferramenta.
+
+{solicitacoes}
+{template}
+{restrições}
+{controles}
+""",
+            expected_output="YAML completo com TODOS os campos preenchidos conforme <template>. "
+                           "Cada campo deve conter informações extraídas do PDF (usando a ferramenta) ou 'Informação não disponível no documento' se não encontrado. "
+                           "O YAML deve ter o título real do artigo, nome do arquivo real, e informações reais extraídas do PDF.",
+            agent=agent_leitor,
+            tools=[self.pdf_tool]
         )
 
         # Tarefa do Revisor
