@@ -1,74 +1,44 @@
-import os
 from crewai import Agent, Task, Crew, Process
 from crewai_tools import PDFSearchTool
-from dotenv import load_dotenv
-from langchain_openai import ChatOpenAI
 
-
-# Carregar variáveis de ambiente do arquivo .env (apenas se não existir)
-if not os.getenv('OPENAI_API_KEY'):
-    load_dotenv(override=False)
-
-# Função para obter o modelo OpenAI apenas quando necessário
-def get_openai_model():
-    """Retorna o modelo OpenAI, inicializando apenas quando necessário"""
-    # Garantir que a variável de ambiente está carregada
-    api_key = os.getenv('OPENAI_API_KEY')
-    if not api_key:
-        raise ValueError("OPENAI_API_KEY não encontrada nas variáveis de ambiente!")
-    
-    # Limpar apenas quebras de linha
-    api_key = str(api_key).strip().replace('\n', '').replace('\r', '')
-    
-    # Validação rigorosa da chave
-    if not api_key.startswith('sk-'):
-        raise ValueError(f"OPENAI_API_KEY inválida! Deve começar com 'sk-'. Recebido: {api_key[:15]}...")
-    
-    if len(api_key) < 50:
-        raise ValueError(f"OPENAI_API_KEY muito curta! Chaves OpenAI têm 100+ caracteres. Recebido: {len(api_key)} caracteres")
-    
-    # Inicializar ChatOpenAI explicitamente com a API key
-    return ChatOpenAI(
-        model_name="gpt-4o-mini", 
-        temperature=0.7,
-        api_key=api_key
-    )
+from core.openai_client import get_openai_chat_model
 
 
 class CrewPDFResumo:
-
     def __init__(self, pdf_path):
-        self.pdf_tool = PDFSearchTool(pdf_path)  # Tool nativa do CrewAI para leitura de PDF
-        self.llm = get_openai_model()  # Configuração do modelo LLM
+        self.pdf_tool = PDFSearchTool(pdf_path)
+        self.llm = get_openai_chat_model(model_name="gpt-4o-mini", temperature=0.7)
         self.crew = self._criar_crew()
 
     def _criar_crew(self):
-        # Definindo o agente resumidor
         resumidor = Agent(
-            role='''Resumidor''',
-            goal='''Criar um resumo do conteúdo de um PDF.''',
+            role="Resumidor",
+            goal="Criar um resumo do conteudo de um PDF.",
             verbose=True,
-            memory=False,  # Desabilitado para evitar problemas com Qdrant
-            backstory='''Você é um especialista em sintetizar informações de documentos extensos. 
-                        Seu objetivo é identificar os pontos principais e entregar um resumo conciso e útil.''',
-            tools=[self.pdf_tool],  # Associando a tool de leitura de PDF ao agente
-            llm=self.llm
+            memory=False,
+            backstory=(
+                "Voce e um especialista em sintetizar informacoes de documentos extensos. "
+                "Seu objetivo e identificar os pontos principais e entregar um resumo conciso e util."
+            ),
+            tools=[self.pdf_tool],
+            llm=self.llm,
         )
 
-        # Tarefa de resumo
         resumo_tarefa = Task(
-            description='''Leia o conteúdo do PDF fornecido usando a tool integrada. 
-                          Produza um resumo objetivo, destacando os principais pontos e ideias essenciais.''',
-            expected_output='''Um resumo claro e objetivo do conteúdo do PDF.''',
-            agent=resumidor
+            description=(
+                "Leia o conteudo do PDF fornecido usando a tool integrada. "
+                "Produza um resumo objetivo, destacando os principais pontos e ideias essenciais."
+            ),
+            expected_output="Um resumo claro e objetivo do conteudo do PDF.",
+            agent=resumidor,
         )
-        # Criando o Crew
+
         return Crew(
             agents=[resumidor],
             tasks=[resumo_tarefa],
-            process=Process.sequential
+            process=Process.sequential,
         )
+
     def kickoff(self):
-        # Executa o Crew com o caminho do PDF como entrada
         resposta = self.crew.kickoff()
         return resposta.raw

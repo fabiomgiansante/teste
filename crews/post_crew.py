@@ -1,129 +1,88 @@
-import os
 from crewai import Agent, Task, Crew, Process
 from crewai_tools import SerperDevTool
-from dotenv import load_dotenv
-from langchain_openai import ChatOpenAI
 
+from core.openai_client import get_openai_chat_model
 
-# Carregar variáveis de ambiente do arquivo .env (apenas se não existir)
-if not os.getenv('OPENAI_API_KEY'):
-    load_dotenv(override=False)
-
-# Função para obter o modelo OpenAI apenas quando necessário
-def get_openai_model():
-    """Retorna o modelo OpenAI, inicializando apenas quando necessário"""
-    # Garantir que a variável de ambiente está carregada
-    api_key = os.getenv('OPENAI_API_KEY')
-    if not api_key:
-        raise ValueError("OPENAI_API_KEY não encontrada nas variáveis de ambiente!")
-    
-    # Limpar apenas quebras de linha
-    api_key = str(api_key).strip().replace('\n', '').replace('\r', '')
-    
-    # Validação rigorosa da chave
-    if not api_key.startswith('sk-'):
-        raise ValueError(f"OPENAI_API_KEY inválida! Deve começar com 'sk-'. Recebido: {api_key[:15]}...")
-    
-    if len(api_key) < 50:
-        raise ValueError(f"OPENAI_API_KEY muito curta! Chaves OpenAI têm 100+ caracteres. Recebido: {len(api_key)} caracteres")
-    
-    # Inicializar ChatOpenAI explicitamente com a API key
-    return ChatOpenAI(
-        model_name="gpt-4o-mini", 
-        temperature=0.7,
-        api_key=api_key
-    )
 
 class CrewPostagem:
-
     def __init__(self):
-        
         self.search_tool = SerperDevTool()
-        self.llm = get_openai_model()
-        
+        self.llm = get_openai_chat_model(model_name="gpt-4o-mini", temperature=0.7)
         self.crew = self._criar_crew()
 
     def _criar_crew(self):
-        
-
-        # Definindo os agentes
         pesquisador = Agent(
-            role='Pesquisador',
-            goal='Encontrar informações relevantes sobre {topic}',
+            role="Pesquisador",
+            goal="Encontrar informacoes relevantes sobre {topic}",
             verbose=True,
-            memory=False,  # Desabilitado para evitar problemas com Qdrant
+            memory=False,
             backstory=(
-                'Você é um pesquisador especializado em descobrir informações'
-                ' úteis e relevantes para escrever sobre {topic}.'
+                "Voce e um pesquisador especializado em descobrir informacoes "
+                "uteis e relevantes para escrever sobre {topic}."
             ),
             tools=[self.search_tool],
-            llm=self.llm
+            llm=self.llm,
         )
 
         escritor = Agent(
-            role='Escritor',
-            goal='Criar uma postagem convincente sobre {topic}',
+            role="Escritor",
+            goal="Criar uma postagem convincente sobre {topic}",
             verbose=True,
-            memory=False,  # Desabilitado para evitar problemas com Qdrant
+            memory=False,
             backstory=(
-                'Você é um redator experiente que transforma informações em'
-                ' conteúdos interessantes e informativos.'
+                "Voce e um redator experiente que transforma informacoes em "
+                "conteudos interessantes e informativos."
             ),
-            llm=self.llm
+            llm=self.llm,
         )
 
         revisor = Agent(
-            role='Revisor',
-            goal='Revisar e melhorar a postagem sobre {topic}',
+            role="Revisor",
+            goal="Revisar e melhorar a postagem sobre {topic}",
             verbose=True,
-            memory=False,  # Desabilitado para evitar problemas com Qdrant
+            memory=False,
             backstory=(
-                'Você é um revisor detalhista, especializado em ajustar o tom,'
-                ' a clareza e a gramática de textos.'
+                "Voce e um revisor detalhista, especializado em ajustar o tom, "
+                "a clareza e a gramatica de textos."
             ),
-            llm=self.llm
+            llm=self.llm,
         )
 
-        # Tarefas
         pesquisa_tarefa = Task(
             description=(
-                'Pesquise informações detalhadas sobre {topic}.'
-                ' Foque em identificar pontos importantes e um resumo geral.'
+                "Pesquise informacoes detalhadas sobre {topic}. "
+                "Foque em identificar pontos importantes e um resumo geral."
             ),
-            expected_output='Um resumo detalhado sobre {topic}.',
+            expected_output="Um resumo detalhado sobre {topic}.",
             tools=[self.search_tool],
             agent=pesquisador,
         )
 
         escrita_tarefa = Task(
             description=(
-                'Escreva uma postagem com base no conteúdo pesquisado.'
-                ' A postagem deve ser clara, interessante e envolvente.'
+                "Escreva uma postagem com base no conteudo pesquisado. "
+                "A postagem deve ser clara, interessante e envolvente."
             ),
-            expected_output='Uma postagem completa sobre {topic} com 3 parágrafos.',
+            expected_output="Uma postagem completa sobre {topic} com 3 paragrafos.",
             agent=escritor,
-            context=[pesquisa_tarefa]
+            context=[pesquisa_tarefa],
         )
 
         revisao_tarefa = Task(
             description=(
-                'Reveja a postagem criada, ajustando a clareza e corrigindo possíveis erros.'
+                "Revise a postagem criada, ajustando a clareza e corrigindo possiveis erros."
             ),
-            expected_output='Uma postagem revisada e otimizada.',
+            expected_output="Uma postagem revisada e otimizada.",
             agent=revisor,
-            context=[escrita_tarefa]
+            context=[escrita_tarefa],
         )
 
-        # Criando o Crew
         return Crew(
             agents=[pesquisador, escritor, revisor],
             tasks=[pesquisa_tarefa, escrita_tarefa, revisao_tarefa],
-            process=Process.sequential
+            process=Process.sequential,
         )
 
     def kickoff(self, inputs):
-        # Executa o Crew com o tópico fornecido
-        
-        resposta = self.crew.kickoff(inputs=inputs) 
-    
+        resposta = self.crew.kickoff(inputs=inputs)
         return resposta.raw

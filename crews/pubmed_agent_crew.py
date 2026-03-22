@@ -1,106 +1,109 @@
+from urllib.parse import quote_plus
+
 import requests
 from bs4 import BeautifulSoup
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
-def scrape_pubmed_central(theme, pathology):
-    # Construct search URL
-    query = f"{theme} {pathology}"
-    url = f"https://pubmed.ncbi.nlm.nih.gov/?term={query.replace(' ', '+')}"
 
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3"
-    }
+PUBMED_BASE_URL = "https://pubmed.ncbi.nlm.nih.gov"
+DEFAULT_TIMEOUT = 15
+DEFAULT_MAX_RESULTS = 8
 
-    print(f"Fetching data from: {url}")
-    response = requests.get(url, headers=headers)
 
-    if response.status_code != 200:
-        print(f"Erro ao acessar PubMed: Status code {response.status_code}")
+def _build_session() -> requests.Session:
+    retry = Retry(
+        total=2,
+        connect=2,
+        read=2,
+        backoff_factor=0.6,
+        status_forcelist=(429, 500, 502, 503, 504),
+        allowed_methods=("GET",),
+        raise_on_status=False,
+    )
+
+    adapter = HTTPAdapter(max_retries=retry)
+    session = requests.Session()
+    session.mount("http://", adapter)
+    session.mount("https://", adapter)
+    session.headers.update(
+        {
+            "User-Agent": (
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/124.0.0.0 Safari/537.36"
+            )
+        }
+    )
+    return session
+
+
+def scrape_pubmed_central(theme, pathology, max_results=DEFAULT_MAX_RESULTS, timeout=DEFAULT_TIMEOUT):
+    query = f"{(theme or '').strip()} {(pathology or '').strip()}".strip()
+    if not query:
+        return []
+
+    search_url = f"{PUBMED_BASE_URL}/?term={quote_plus(query)}"
+    session = _build_session()
+
+    try:
+        response = session.get(search_url, timeout=timeout)
+        response.raise_for_status()
+    except requests.RequestException:
+        session.close()
         return []
 
     soup = BeautifulSoup(response.text, "html.parser")
-    study_cards = soup.find_all('article', class_='full-docsum')
+    study_cards = soup.find_all("article", class_="full-docsum", limit=max_results)
+
     studies = []
-
     for card in study_cards:
-        try:
-            title_tag = card.find('a', class_='docsum-title')
-            title = title_tag.text.strip()
-            link = "https://pubmed.ncbi.nlm.nih.gov" + title_tag['href']
-            authors = card.find('span', class_='docsum-authors').text.strip() if card.find('span', class_='docsum-authors') else "Autores não disponíveis"
-
-            # Navigate to the detailed page for more information
-            study_details = scrape_study_details(link, headers)
-            studies.append({
-                'title': title,
-                'authors': authors,
-                **study_details,  # Merge detailed page data
-                'link': link
-            })
-        except Exception as e:
-            print(f"Erro ao processar um estudo: {e}")
+        title_tag = card.find("a", class_="docsum-title")
+        if title_tag is None:
             continue
 
+        title = title_tag.text.strip()
+        href = title_tag.get("href", "").strip()
+        if not href:
+            continue
+
+        link = f"{PUBMED_BASE_URL}{href}"
+
+        author_tag = card.find("span", class_="docsum-authors")
+        authors = author_tag.text.strip() if author_tag else "Autores nao disponiveis"
+
+        details = scrape_study_details(session, link, timeout=timeout)
+        studies.append(
+            {
+                "title": title,
+                "authors": authors,
+                **details,
+                "link": link,
+            }
+        )
+
+    session.close()
     return studies
 
-def scrape_study_details(link, headers):
-    """
-    Fetch detailed study information from the article page.
-    """
-    response = requests.get(link, headers=headers)
-    if response.status_code != 200:
-        print(f"Erro ao acessar página detalhada: {link}")
-        return {
-            'np': "Informação não disponível",
-            'criteria': "Informação não disponível",
-            'conclusion': "Informação não disponível"
-        }
 
-    soup = BeautifulSoup(response.text, "html.parser")
-
-    # Example parsing; adjust based on actual structure
-    np = "Informação não disponível"
-    criteria = "Informação não disponível"
-    conclusion = "Informação não disponível"
-
-    # Try to extract specific sections, adjust selectors if necessary
-    try:
-        conclusion_section = soup.find('div', class_='abstract-content selected')
-        conclusion = conclusion_section.text.strip() if conclusion_section else "Informação não disponível"
-    except Exception:
-        pass  # Leave as "Informação não disponível" if extraction fails
-
-    return {
-        'np': np,
-        'criteria': criteria,
-        'conclusion': conclusion
+def scrape_study_details(session, link, timeout=DEFAULT_TIMEOUT):
+    fallback = {
+        "np": "Informacao nao disponivel",
+        "criteria": "Informacao nao disponivel",
+        "conclusion": "Informacao nao disponivel",
     }
 
-# Código para execução direta do script (não executa quando importado)
-if __name__ == "__main__":
-    # Input from the user
-    print("Digite o tema principal do estudo (ex: cannabinoides):")
-    theme = input("Tema: ").strip()
-    print("Digite a patologia (ex: demência):")
-    pathology = input("Patologia: ").strip()
-    
-    if not theme or not pathology:
-        raise ValueError("Ambos o tema e a patologia devem ser fornecidos.")
-    
-    # Fetch studies
-    studies = scrape_pubmed_central(theme, pathology)
-    
-    # Display results
-    if not studies:
-        print("\nNenhum estudo foi encontrado para a combinação fornecida.")
-    else:
-        print(f"\n=== Resultados da Pesquisa para: {theme} e {pathology} ===")
-        for idx, estudo in enumerate(studies, start=1):
-            print(f"\nEstudo {idx}:")
-            print(f"  Título: {estudo.get('title', 'Título não disponível')}")
-            print(f"  Autores: {estudo.get('authors', 'Autores não disponíveis')}")
-            print(f"  Número de Participantes: {estudo.get('np', 'Informação não disponível')}")
-            print(f"  Critérios: {estudo.get('criteria', 'Informação não disponível')}")
-            print(f"  Conclusão: {estudo.get('conclusion', 'Informação não disponível')}")
-            print(f"  Link: {estudo.get('link', 'Link não disponível')}")
-    
-    print("\nFim da execução.")
+    try:
+        response = session.get(link, timeout=timeout)
+        response.raise_for_status()
+    except requests.RequestException:
+        return fallback
+
+    soup = BeautifulSoup(response.text, "html.parser")
+    conclusion_section = soup.find("div", class_="abstract-content selected")
+
+    if not conclusion_section:
+        return fallback
+
+    fallback["conclusion"] = conclusion_section.text.strip()
+    return fallback

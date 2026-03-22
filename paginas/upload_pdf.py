@@ -1,93 +1,63 @@
-import os
-import time  # Adicionado para simular um tempo de processamento
-import streamlit as st
-from crews.pdf_resumo_crew import CrewPDFResumo
+from pathlib import Path
 
-# Configuração do diretório temporário
-TEMP_DIR = "temp"
-os.makedirs(TEMP_DIR, exist_ok=True)
+import streamlit as st
+
+from core.env import build_temp_upload_path, ensure_openai_api_key
+from core.execution_guard import SessionExecutionGuard
+from services.crew_factory import create_crew
+
+
+TEMP_DIR = Path("temp")
 
 
 def render_upload_page():
-
-    # Título da aplicação
     st.title("Resumidor de PDF")
+    st.write("Faca upload de um arquivo PDF para resumir seu conteudo.")
+    guard = SessionExecutionGuard("pdf_summary")
 
-    # Instruções para o usuário
-    st.write("Faça upload de um arquivo PDF para resumir seu conteúdo.")
+    uploaded_file = st.file_uploader("Escolha um arquivo PDF", type="pdf", key="summary_pdf_uploader")
 
-    # Elemento de upload de arquivo
-    uploaded_file = st.file_uploader("Escolha um arquivo PDF", type="pdf")
+    if uploaded_file is None:
+        return
 
-    if uploaded_file is not None:
-        try:
-            # Salvando o arquivo no diretório temporário
-            temp_file_path = os.path.join(TEMP_DIR, uploaded_file.name)
-            with open(temp_file_path, "wb") as f:
-                f.write(uploaded_file.getbuffer())
+    if guard.is_running():
+        st.info("Ha uma execucao em andamento. Aguarde a finalizacao.")
+        return
 
-            st.success(f"Upload Realizado com sucesso: {uploaded_file.name}")
+    temp_file_path = None
 
-            st.info("Resumindo PDF com agentes")
-            
-            # Validar se a chave da API está disponível
-            api_key = os.getenv('OPENAI_API_KEY')
-            if not api_key:
-                st.error('⚠️ Erro: OPENAI_API_KEY não encontrada! Verifique os Secrets no Streamlit Cloud.')
-                return
-            
-            # Validar formato da chave
-            if not api_key.startswith('sk-'):
-                st.error(f'⚠️ Erro: OPENAI_API_KEY parece inválida! Deve começar com "sk-". Primeiros caracteres: {api_key[:10]}...')
-                st.info('💡 Dica: Verifique se a chave está completa nos Secrets do Streamlit Cloud.')
-                return
-            
-            if len(api_key) < 50:
-                st.warning(f'⚠️ Aviso: OPENAI_API_KEY parece muito curta ({len(api_key)} caracteres). Chaves OpenAI normalmente têm 100+ caracteres.')
+    try:
+        ensure_openai_api_key()
 
-            # Loader durante a execução da tarefa
-            progress_bar = st.progress(0)
-            status_text = st.empty()
-            
-            with st.spinner('Executando tarefas do Crew...'):
-                try:
-                    status_text.text('Inicializando crew...')
-                    progress_bar.progress(10)
-                    crew = CrewPDFResumo(temp_file_path)
-                    
-                    status_text.text('Lendo PDF e gerando resumo...')
-                    progress_bar.progress(30)
-                    resultado = crew.kickoff()
-                    
-                    progress_bar.progress(100)
-                    status_text.text('Resumo concluído!')
-                except ValueError as e:
-                    # Erro de validação da API key
-                    st.error(f'⚠️ Erro de validação: {e}')
-                    st.info('💡 Verifique se a OPENAI_API_KEY está correta nos Secrets do Streamlit Cloud.')
-                    return
-                except Exception as e:
-                    error_msg = str(e)
-                    if '401' in error_msg or 'invalid_api_key' in error_msg or 'Incorrect API key' in error_msg:
-                        st.error('❌ Erro: API Key da OpenAI está incorreta ou inválida!')
-                        st.info('''
-                        **Como corrigir:**
-                        1. Acesse: https://platform.openai.com/account/api-keys
-                        2. Crie uma nova chave ou copie a chave existente
-                        3. No Streamlit Cloud: "Manage app" → "Settings" → "Secrets"
-                        4. Cole a chave completa no formato:
-                           ```
-                           OPENAI_API_KEY = "sk-proj-sua-chave-completa-aqui"
-                           ```
-                        5. Salve e reinicie o app
-                        ''')
-                    else:
-                        st.error(f'Erro ao executar o crew: {e}')
-                    return
+        temp_file_path = build_temp_upload_path(TEMP_DIR, uploaded_file.name)
+        temp_file_path.write_bytes(uploaded_file.getbuffer())
 
-            st.text_area("Resumo via agentes:", resultado, height=300)
+        st.success(f"Upload realizado com sucesso: {uploaded_file.name}")
+        st.info("Resumindo PDF com agentes...")
 
-        except Exception as e:
-            st.error(f"Erro ao processar o arquivo: {e}")
+        progress_bar = st.progress(0)
+        status_text = st.empty()
 
+        with guard.running():
+            with st.spinner("Executando tarefas do Crew..."):
+                status_text.text("Inicializando crew...")
+                progress_bar.progress(15)
+                crew = create_crew("pdf_summary", pdf_path=str(temp_file_path))
 
+                status_text.text("Lendo PDF e gerando resumo...")
+                progress_bar.progress(45)
+                resultado = crew.kickoff()
+
+                progress_bar.progress(100)
+                status_text.text("Resumo concluido.")
+
+        st.text_area("Resumo via agentes:", resultado, height=300)
+
+    except ValueError as exc:
+        st.error(f"Erro de validacao: {exc}")
+        st.info("Verifique OPENAI_API_KEY nos Secrets do Streamlit Cloud.")
+    except Exception as exc:
+        st.error(f"Erro ao processar o arquivo: {exc}")
+    finally:
+        if temp_file_path and temp_file_path.exists():
+            temp_file_path.unlink(missing_ok=True)
